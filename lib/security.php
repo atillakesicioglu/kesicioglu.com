@@ -54,7 +54,86 @@ function app_require_csrf_get(): void {
     }
 }
 
-// ---------------- Login rate limit ----------------
+// ---------------- Trusted IP helper ----------------
+/**
+ * Returns the real client IP.
+ * Only reads X-Forwarded-For when TRUSTED_PROXY constant is defined and matches REMOTE_ADDR.
+ */
+function app_client_ip(): string {
+    $remote = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    if (defined('TRUSTED_PROXY') && $remote === TRUSTED_PROXY) {
+        $forwarded = trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '')[0]);
+        if (filter_var($forwarded, FILTER_VALIDATE_IP)) {
+            return $forwarded;
+        }
+    }
+    return $remote;
+}
+
+// ---------------- DB-backed admin login rate limit ----------------
+/**
+ * Records a failed admin login attempt for the given IP.
+ * Returns true if the IP should now be blocked (too many attempts within the window).
+ *
+ * Table required:
+ *   CREATE TABLE admin_login_attempts (
+ *     id          BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ *     ip          VARCHAR(45)  NOT NULL,
+ *     attempted_at DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ *     INDEX idx_ip_time (ip, attempted_at)
+ *   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+ */
+function app_admin_login_attempt(string $ip, int $maxAttempts = 5, int $windowSeconds = 600): bool {
+    global $pdo;
+    try {
+        // Prune old rows for this IP first (keep table small)
+        $cutoff = date('Y-m-d H:i:s', time() - $windowSeconds);
+        $pdo->prepare("DELETE FROM admin_login_attempts WHERE ip = ? AND attempted_at < ?")
+            ->execute([$ip, $cutoff]);
+
+        // Insert new attempt
+        $pdo->prepare("INSERT INTO admin_login_attempts (ip, attempted_at) VALUES (?, NOW())")
+            ->execute([$ip]);
+
+        // Count remaining attempts in window
+        $stmt = $pdo->prepare(
+            "SELECT COUNT(*) FROM admin_login_attempts WHERE ip = ? AND attempted_at >= ?"
+        );
+        $stmt->execute([$ip, $cutoff]);
+        return (int) $stmt->fetchColumn() >= $maxAttempts;
+    } catch (PDOException $e) {
+        // Fail-open: DB error should not lock out the admin
+        error_log('admin_login_attempt error: ' . $e->getMessage());
+        return false;
+    }
+}
+
+function app_admin_login_blocked(string $ip, int $maxAttempts = 5, int $windowSeconds = 600): bool {
+    global $pdo;
+    try {
+        $cutoff = date('Y-m-d H:i:s', time() - $windowSeconds);
+        $stmt = $pdo->prepare(
+            "SELECT COUNT(*) FROM admin_login_attempts WHERE ip = ? AND attempted_at >= ?"
+        );
+        $stmt->execute([$ip, $cutoff]);
+        return (int) $stmt->fetchColumn() >= $maxAttempts;
+    } catch (PDOException $e) {
+        error_log('admin_login_blocked error: ' . $e->getMessage());
+        return false;
+    }
+}
+
+function app_admin_login_clear(string $ip): void {
+    global $pdo;
+    try {
+        $pdo->prepare("DELETE FROM admin_login_attempts WHERE ip = ?")
+            ->execute([$ip]);
+    } catch (PDOException $e) {
+        error_log('admin_login_clear error: ' . $e->getMessage());
+    }
+}
+
+// ---------------- Session-based login rate limit (legacy, kept for non-admin uses) ----------------
 function app_rate_limit_key(string $purpose): string {
     $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
     return $purpose . ':' . hash('sha256', $ip);

@@ -1,5 +1,6 @@
 <?php
-require_once '../config.php';
+require_once __DIR__ . '/bootstrap.php';
+admin_guard();
 $pageTitle = 'Dashboard';
 
 // İstatistikleri çek

@@ -7,6 +7,17 @@ START TRANSACTION;
 SET time_zone = "+00:00";
 
 -- ===================================
+-- Admin Login Attempts (brute-force protection)
+-- ===================================
+CREATE TABLE IF NOT EXISTS `admin_login_attempts` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `ip` VARCHAR(45) NOT NULL,
+  `attempted_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `idx_ip_time` (`ip`, `attempted_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ===================================
 -- Admin Users Table
 -- ===================================
 CREATE TABLE `admin_users` (

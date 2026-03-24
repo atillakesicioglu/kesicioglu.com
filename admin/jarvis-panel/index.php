@@ -1,10 +1,6 @@
 <?php
-require_once '../../config.php';
-
-// Auth check (Uses existing admin session)
-if (!isLoggedIn()) {
-    redirect('../login.php');
-}
+require_once __DIR__ . '/../bootstrap.php';
+admin_guard();
 
 $pageTitle = 'Jarvis Control Center';
 
@@ -154,15 +150,20 @@ include 'includes/header.php';
         }
     });
 
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+    function jarvisFetch(action) {
+        const formData = new FormData();
+        formData.append('action', action);
+        formData.append('_csrf', csrfToken);
+        return fetch('api.php', { method: 'POST', body: formData }).then(r => r.json());
+    }
+
     function updateStats() {
         const icon = document.getElementById('refresh-icon');
         icon.classList.add('fa-spin');
-        
-        const formData = new FormData();
-        formData.append('action', 'get_stats');
 
-        fetch('api.php', { method: 'POST', body: formData })
-        .then(response => response.json())
+        jarvisFetch('get_stats')
         .then(res => {
             if(res.status === 'success') {
                 const data = res.data;
@@ -191,26 +192,22 @@ include 'includes/header.php';
         const box = document.getElementById('terminal-box');
         const output = document.getElementById('terminal-output');
         box.style.display = 'block';
-        output.innerText = '> ' + cmd + ' komutu gönderiliyor...\n';
-        
-        const formData = new FormData();
-        formData.append('action', cmd);
+        output.innerText = '> ' + cmd + ' ...\n';
 
-        fetch('api.php', { method: 'POST', body: formData })
-        .then(response => response.json())
+        jarvisFetch(cmd)
         .then(data => {
             if(data.status === 'success') {
-                output.innerText += '> [YANIT]: ' + data.output;
+                output.innerText += '> [OK]: ' + data.output;
             } else {
-                output.innerText += '> [HATA]: ' + data.message;
+                output.innerText += '> [ERROR]: ' + data.message;
             }
         })
-        .catch(err => {
-            output.innerText += '> [HATA]: Bağlantı hatası.';
+        .catch(() => {
+            output.innerText += '> [ERROR]: Connection error.';
         });
     }
 
-    // İlk yüklemede verileri çek
+    // Load stats on page ready
     window.onload = updateStats;
 </script>
 

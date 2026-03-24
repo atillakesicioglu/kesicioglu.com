@@ -1,6 +1,6 @@
 <?php
-require_once '../config.php';
-require_once __DIR__ . '/../lib/security.php';
+require_once __DIR__ . '/bootstrap.php';
+admin_guard();
 
 app_require_csrf_post();
 $pageTitle = 'Site Ayarları';
@@ -8,11 +8,22 @@ $pageTitle = 'Site Ayarları';
 $message = '';
 $messageType = '';
 
+// Allowed setting keys that may be written via the settings form
+const SETTINGS_ALLOWLIST = [
+    'site_title', 'site_subtitle', 'footer_text',
+    'hero_title', 'hero_subtitle', 'hero_description', 'hero_image',
+    'about_text_1', 'about_text_2',
+    'stat_projects', 'stat_experience', 'stat_clients',
+    'primary_color', 'secondary_color', 'accent_color',
+    'contact_email', 'contact_phone', 'contact_location',
+    'email_notifications', 'notification_email',
+];
+
 // Form gönderildi mi?
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         foreach ($_POST as $key => $value) {
-            if ($key !== 'submit') {
+            if (in_array($key, SETTINGS_ALLOWLIST, true)) {
                 updateSetting($key, $value);
             }
         }

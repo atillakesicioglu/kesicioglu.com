@@ -1,14 +1,18 @@
 <?php
-require_once '../../config.php';
-
-// Auth check (Uses existing admin session)
-if (!isLoggedIn()) {
-    header('Content-Type: application/json');
-    echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
-    exit;
-}
+require_once __DIR__ . '/../bootstrap.php';
 
 header('Content-Type: application/json');
+admin_guard_api();
+
+// CSRF check for every POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $token = $_POST['_csrf'] ?? '';
+    if (!app_csrf_verify($token)) {
+        http_response_code(403);
+        echo json_encode(['status' => 'error', 'message' => 'CSRF verification failed.']);
+        exit;
+    }
+}
 
 // Get Real Data Helper (Mixed OpenClaw + Hosting)
 function get_real_stats() {

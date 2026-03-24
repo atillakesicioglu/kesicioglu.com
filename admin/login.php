@@ -12,35 +12,45 @@ if (isLoggedIn()) {
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = sanitize($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
+    $clientIp = app_client_ip();
 
-    $rateKey = app_rate_limit_key('admin_login');
-    if (!app_rate_limit_ok($rateKey, 5, 10 * 60)) {
-        $error = 'Çok fazla deneme yaptın. Lütfen 10 dakika sonra tekrar dene.';
-    } elseif ($username && $password) {
-        try {
-            $stmt = $pdo->prepare("SELECT * FROM admin_users WHERE username = ?");
-            $stmt->execute([$username]);
-            $user = $stmt->fetch();
-
-            if ($user && password_verify($password, $user['password'])) {
-                // successful login: reset rate limit bucket
-                $_SESSION['_rate'][$rateKey] = [];
-
-                $_SESSION['admin_id'] = $user['id'];
-                $_SESSION['admin_username'] = $user['username'];
-                $_SESSION['admin_email'] = $user['email'];
-                redirect('index.php');
-            } else {
-                app_rate_limit_hit($rateKey);
-                $error = 'Kullanıcı adı veya şifre hatalı!';
-            }
-        } catch (PDOException $e) {
-            $error = 'Bir hata oluştu. Lütfen tekrar deneyin.';
-        }
+    // DB-backed IP rate limit check (5 attempts / 10 min)
+    if (app_admin_login_blocked($clientIp)) {
+        $error = 'Too many failed attempts. Please try again in 10 minutes.';
     } else {
-        $error = 'Lütfen tüm alanları doldurun!';
+        $username = sanitize($_POST['username'] ?? '');
+        $password = $_POST['password'] ?? '';
+
+        if ($username && $password) {
+            try {
+                $stmt = $pdo->prepare("SELECT * FROM admin_users WHERE username = ?");
+                $stmt->execute([$username]);
+                $user = $stmt->fetch();
+
+                if ($user && password_verify($password, $user['password'])) {
+                    // Prevent session fixation: regenerate ID before writing auth data
+                    session_regenerate_id(true);
+
+                    // Successful login: clear IP attempt history
+                    app_admin_login_clear($clientIp);
+
+                    $_SESSION['admin_id'] = $user['id'];
+                    $_SESSION['admin_username'] = $user['username'];
+                    $_SESSION['admin_email'] = $user['email'];
+                    redirect('index.php');
+                } else {
+                    // Record failed attempt and re-check block threshold
+                    $nowBlocked = app_admin_login_attempt($clientIp);
+                    $error = $nowBlocked
+                        ? 'Too many failed attempts. Please try again in 10 minutes.'
+                        : 'Invalid username or password.';
+                }
+            } catch (PDOException $e) {
+                $error = 'An error occurred. Please try again.';
+            }
+        } else {
+            $error = 'Please fill in all fields.';
+        }
     }
 }
 ?>

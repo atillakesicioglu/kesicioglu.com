@@ -1,0 +1,29 @@
+# Admin panel security headers
+# Requires Apache mod_headers (enabled on most cPanel hosts)
+
+<IfModule mod_headers.c>
+    # Prevent admin pages from being embedded in iframes (clickjacking)
+    Header always set X-Frame-Options "DENY"
+
+    # Prevent MIME-type sniffing
+    Header always set X-Content-Type-Options "nosniff"
+
+    # Restrict referrer information sent to external sites
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Minimal CSP for admin panel: same-origin scripts/styles + CDN allowlist
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'none';"
+
+    # Disable cache for admin pages (sensitive data)
+    Header always set Cache-Control "no-store, no-cache, must-revalidate, private"
+    Header always set Pragma "no-cache"
+</IfModule>
+
+# Prevent directory listing
+Options -Indexes
+
+# PHP error display off for admin area
+<IfModule mod_php.c>
+    php_flag display_errors Off
+    php_flag log_errors On
+</IfModule>
