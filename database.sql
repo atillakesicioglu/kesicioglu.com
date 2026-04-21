@@ -70,6 +70,7 @@ INSERT INTO `site_settings` (`setting_key`, `setting_value`, `setting_type`, `ca
 ('contact_location', 'İstanbul, Türkiye', 'text', 'contact'),
 ('email_notifications', '1', 'boolean', 'email'),
 ('notification_email', '', 'text', 'email'),
+('head_analytics_code', '', 'textarea', 'general'),
 ('footer_text', 'Bilgisayar Mühendisi • Web Developer', 'text', 'footer');
 
 -- ===================================

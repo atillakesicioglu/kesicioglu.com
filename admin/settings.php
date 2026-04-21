@@ -17,6 +17,7 @@ const SETTINGS_ALLOWLIST = [
     'primary_color', 'secondary_color', 'accent_color',
     'contact_email', 'contact_phone', 'contact_location',
     'email_notifications', 'notification_email',
+    'head_analytics_code',
 ];
 
 // Form gönderildi mi?
@@ -59,6 +60,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Tüm ayarları çek
 $settings = [];
+$pdo->prepare("
+    INSERT IGNORE INTO site_settings (setting_key, setting_value, setting_type, category)
+    VALUES ('head_analytics_code', '', 'textarea', 'general')
+")->execute();
 $stmt = $pdo->query("SELECT * FROM site_settings ORDER BY category, setting_key");
 while ($row = $stmt->fetch()) {
     $settings[$row['setting_key']] = $row;
@@ -224,6 +229,22 @@ include 'includes/header.php';
             <div class="form-group">
                 <label>Footer Metni</label>
                 <input type="text" name="footer_text" class="form-control" value="<?php echo htmlspecialchars($settings['footer_text']['setting_value'] ?? ''); ?>" required>
+            </div>
+        </div>
+    </div>
+
+    <!-- Head Code -->
+    <div class="dashboard-card" style="margin-bottom: 24px;">
+        <div class="card-header">
+            <h3><i class="fas fa-code"></i> Head Analytics Kodu</h3>
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <label>Analytics / Tracking Kodu</label>
+                <textarea name="head_analytics_code" class="form-control" rows="6" placeholder="&lt;script&gt;...&lt;/script&gt;"><?php echo htmlspecialchars($settings['head_analytics_code']['setting_value'] ?? ''); ?></textarea>
+                <small style="color: #6b7280; font-size: 12px;">
+                    Buraya eklediğin kod public sitenin <code>&lt;head&gt;</code> etiketi içinde olduğu gibi yayınlanır.
+                </small>
             </div>
         </div>
     </div>

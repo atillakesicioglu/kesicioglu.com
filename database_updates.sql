@@ -24,4 +24,22 @@ CREATE TABLE IF NOT EXISTS `contact_rate_limits` (
   KEY `last_submission` (`last_submission`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ===================================
+-- Schema Migrations Table
+-- ===================================
+CREATE TABLE IF NOT EXISTS `schema_migrations` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `migration_name` VARCHAR(255) NOT NULL,
+  `migration_hash` VARCHAR(64) NOT NULL,
+  `applied_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `migration_name` (`migration_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ===================================
+-- Analytics Head Setting
+-- ===================================
+INSERT IGNORE INTO `site_settings` (`setting_key`, `setting_value`, `setting_type`, `category`)
+VALUES ('head_analytics_code', '', 'textarea', 'general');
+
 COMMIT;

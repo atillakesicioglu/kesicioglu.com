@@ -118,6 +118,10 @@ include 'includes/header.php';
                     <i class="fas fa-cog"></i>
                     <span>Site Ayarları</span>
                 </a>
+                <a href="migrations.php" class="quick-action-btn">
+                    <i class="fas fa-database"></i>
+                    <span>DB Migration</span>
+                </a>
                 <a href="social.php" class="quick-action-btn">
                     <i class="fas fa-share-alt"></i>
                     <span>Sosyal Medya</span>

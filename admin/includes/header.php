@@ -34,6 +34,10 @@ if (!isLoggedIn()) {
                     <i class="fas fa-cog"></i>
                     <span>Site Ayarları</span>
                 </a>
+                <a href="migrations.php" class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'migrations.php' ? 'active' : ''; ?>">
+                    <i class="fas fa-database"></i>
+                    <span>DB Migration</span>
+                </a>
                 <a href="navigation.php" class="nav-item <?php echo basename($_SERVER['PHP_SELF']) == 'navigation.php' ? 'active' : ''; ?>">
                     <i class="fas fa-bars"></i>
                     <span>Menü Yönetimi</span>

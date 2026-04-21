@@ -74,6 +74,9 @@ $projects = $pdo->query("SELECT * FROM projects WHERE is_active = 1 ORDER BY dis
         }
     </style>
     <?php endif; ?>
+    <?php if (!empty($settings['head_analytics_code'])): ?>
+    <?php echo $settings['head_analytics_code']; ?>
+    <?php endif; ?>
 </head>
 <body>
     <!-- Navigation -->
